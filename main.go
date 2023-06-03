@@ -23,30 +23,21 @@ func execGitPull(workingDir string) (string, error) {
 }
 
 func walkDirectories(dirPath string) error {
-	// ign, _ := readIgnoreFile(".ign")
-
 	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
 		if info.IsDir() && path != dirPath {
-			// Check if the directory contains a ".git" directory
 			if strings.HasSuffix(path, ".git") {
 				parentDir := filepath.Dir(path)
 				fmt.Println("Executing git pull in directory:", parentDir)
 
-				// Execute git pull in the parent directory
 				output, err := execGitPull(parentDir)
 				if err != nil {
 					return err
 				}
 				fmt.Println(output)
-			}
-
-			// Recursively walk through child directories
-			if err := walkDirectories(path); err != nil {
-				return err
 			}
 		}
 
@@ -57,11 +48,6 @@ func walkDirectories(dirPath string) error {
 }
 
 func main() {
-	// ignFilePath := ".ign"
-	// ignList, err := readIgnoreFile(ignFilePath)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
 
 	dirPath, err := os.Getwd()
 	if err != nil {
@@ -72,4 +58,5 @@ func main() {
 	if err != nil {
 		fmt.Println("Error walking directories:", err)
 	}
+
 }
