@@ -5,37 +5,34 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 )
 
-func execGitPull(workingDir string) (string, error) {
+func executeGitPull(repositoryDir string) (string, error) {
 	cmd := exec.Command("git", "pull")
-	cmd.Dir = workingDir
+	cmd.Dir = repositoryDir
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println("Error executing command:", err)
-		fmt.Println("Command output:", string(output))
-		return "", err
+		return "", fmt.Errorf("failed to execute command: %v\nCommand output: %s", err, string(output))
 	}
 
 	return string(output), nil
 }
 
-func walkDirectories(dirPath string) error {
-	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+func walkRepositories(rootDir string) error {
+	err := filepath.WalkDir(rootDir, func(path string, info os.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to walk directory: %v", err)
 		}
 
-		if info.IsDir() && path != dirPath {
-			if strings.HasSuffix(path, ".git") {
-				parentDir := filepath.Dir(path)
-				fmt.Println("Executing git pull in directory:", parentDir)
+		if info.IsDir() && info.Name() != rootDir {
+			if info.Name() == ".git" {
+				repoDir := filepath.Dir(path)
+				fmt.Println("Executing 'git pull' in directory:", repoDir)
 
-				output, err := execGitPull(parentDir)
+				output, err := executeGitPull(repoDir)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to execute 'git pull' in directory %s: %v", repoDir, err)
 				}
 				fmt.Println(output)
 			}
@@ -44,19 +41,20 @@ func walkDirectories(dirPath string) error {
 		return nil
 	})
 
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to walk repositories: %v", err)
+	}
+
+	return nil
 }
 
 func main() {
-
-	dirPath, err := os.Getwd()
+	rootDir, err := os.Getwd()
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to get current working directory: %v", err))
 	}
 
-	err = walkDirectories(dirPath)
-	if err != nil {
-		fmt.Println("Error walking directories:", err)
+	if err := walkRepositories(rootDir); err != nil {
+		fmt.Println("Error walking repositories:", err)
 	}
-
 }
